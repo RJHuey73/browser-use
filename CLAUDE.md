@@ -18,16 +18,27 @@ The library follows an event-driven architecture with several key components:
 
 ### Event-Driven Browser Management
 
-BrowserSession uses a `bubus` event bus to coordinate watchdog services:
+BrowserSession uses a `bubus` event bus to coordinate watchdog services (defined in
+`browser_use/browser/watchdogs/`, attached in `BrowserSession.attach_all_watchdogs()` in
+`browser_use/browser/session.py`):
 - **DownloadsWatchdog**: Handles PDF auto-download and file management
 - **PopupsWatchdog**: Manages JavaScript dialogs and popups
 - **SecurityWatchdog**: Enforces domain restrictions and security policies
 - **DOMWatchdog**: Processes DOM snapshots, screenshots, and element highlighting
 - **AboutBlankWatchdog**: Handles empty page redirects
+- **DefaultActionWatchdog**: Implements the default browser actions (click, type, scroll, go back/forward, refresh, wait, send keys, upload file, scroll to text, etc.)
+- **ScreenshotWatchdog**: Takes screenshots of the browser (DOMWatchdog depends on it)
+- **PermissionsWatchdog**: Grants/revokes browser permissions (clipboard, microphone, camera, etc.)
+- **LocalBrowserWatchdog**: Manages the locally-launched browser subprocess
+- **RecordingWatchdog**: Handles video recording of the session
+- **HarRecordingWatchdog**: Captures a HAR file when `record_har_path` is configured
+- **CaptchaWatchdog**: Listens for captcha-solver events when `captcha_solver` is configured
+- **StorageStateWatchdog**: Persists/restores cookies and storage state when configured
+- **CrashWatchdog**: Exists in `watchdogs/crash_watchdog.py` but is currently disabled/commented out in `session.py` — not attached at runtime
 
 ### CDP Integration
 
-Uses `cdp-use` (https://github.com/browser-use/cdp-use) for typed CDP protocol access. All CDP client management lives in `browser_use/browser/session.py`.
+Uses `cdp-use` (https://github.com/browser-use/cdp-use) for typed CDP protocol access. All CDP client management lives in `browser_use/browser/session.py`. `browser_use/actor/` (`Page`, `Element`, `Mouse`) is a higher-level, Playwright-like wrapper built directly on top of cdp-use — `BrowserSession.new_page()` / `get_pages()` / `get_current_page()` return these objects.
 
 We want our library APIs to be ergonomic, intuitive, and hard to get wrong.
 
@@ -77,7 +88,7 @@ We use a thin wrapper around CDP called cdp-use: https://github.com/browser-use/
 - CDP-Use: All CDP APIs are exposed in an automatically typed interfaces via cdp-use `cdp_client.send.DomainHere.methodNameHere(params=...)` like so:
   - `cdp_client.send.DOMSnapshot.enable(session_id=session_id)`
   - `cdp_client.send.Target.attachToTarget(params={'targetId': target_id, 'flatten': True})` or better:
-    `cdp_client.send.Target.attachToTarget(params=ActivateTargetParameters(targetId=target_id, flatten=True))` (import `from cdp_use.cdp.target import ActivateTargetParameters`)
+    `cdp_client.send.Target.attachToTarget(params=AttachToTargetParameters(targetId=target_id, flatten=True))` (import `from cdp_use.cdp.target import AttachToTargetParameters`)
   - `cdp_client.register.Browser.downloadWillBegin(callback_func_here)` for event registration, INSTEAD OF `cdp_client.on(...)` which does not exist!
 
 ## Keep Examples & Tests Up-To-Date
@@ -129,7 +140,7 @@ If that doesn't work, just insert your new modified code as new lines in the fil
 - **Views Pattern**: Pydantic models and data structures live in `views.py` files
 - **Events**: Event definitions in `events.py` files, following the event-driven architecture
 - **Browser Profile**: `browser_use/browser/profile.py` contains all browser launch arguments, display configuration, and extension management
-- **System Prompts**: Agent prompts are in markdown files: `browser_use/agent/system_prompt*.md`
+- **System Prompts**: Agent prompts are in markdown files under `browser_use/agent/system_prompts/`
 
 ## Browser Configuration
 
